@@ -53,6 +53,8 @@ app.get('/client', function(req, res){
     res.render('index-client', {
         protocol: req.protocol,
         domain: req.headers.host,
+        hostname: req.hostname,
+        secure: (req.protocol=="https")? true: false,
         joinID: req.query.joinID || "",
         customID: req.query.customID || ""
     });
