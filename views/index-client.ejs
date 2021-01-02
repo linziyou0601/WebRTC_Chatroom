@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+        <title>WebRTC 簡易聊天室</title>
+
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            div.leftArrow {
+                background-color: #f0f0f0;
+            }
+            div.leftArrow:before{
+                content:"";
+                position:absolute;
+                top: 10px;
+                left: -10px;
+                border-bottom: 10px solid transparent;
+                border-top: 10px solid transparent;
+                border-right: 10px solid #f0f0f0;
+            }
+            div.rightArrow:before{
+                content:"";
+                position:absolute;
+                top: 10px;
+                right: -10px;
+                border-bottom: 10px solid transparent;
+                border-top: 10px solid transparent;
+                border-left: 10px solid #0d6efd;
+            }
+            div.leftArrow, div.rightArrow{
+                position:relative;
+            }
+            div.msgContent.rightArrow a {
+                color:#CCCCFF;
+            }
+            div.msgContent.leftArrow a {
+                color:#0d6efd;
+            }
+            /*div.messageArea {
+                background-color: beige;
+            }*/
+            img.preview-img {
+                object-fit: cover;
+                height: 100%;
+                width: 100%;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <!-- ========== 個人連線資料區塊 ========== -->
+            <div class="input-group my-3">
+                <span id="myRTCName" class="input-group-text">我的䁥稱</span>
+                <input type="text" class="form-control">
+                <span id="myRTCID" class="input-group-text">未連接至RTC伺服器</span>
+            </div>
+
+            <!-- ========== 分頁標籤 ========== -->
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" id="home-tab" data-bs-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">首頁</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="new-tab" href="javascript:void(0)" onclick="newChatroom()">+</a>
+                </li>
+            </ul>
+
+            <!-- ========== 分頁主內容 ========== -->
+            <div class="tab-content" id="myTabContent">
+                <!-- 首頁內容 -->
+                <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+                    <div class="my-3 mx-4 small">
+                        <span id="neighborNumber">0</span>位使用者在線... <span id="neighbors" class="text-success"></span>
+                    </div>
+                    <div class="input-group my-3">
+                        <input type="text" class="form-control" id="dialRTCID" value="<%= joinID %>">
+                        <button type="button" class="btn btn-outline-primary" onclick="communicate()">加入通訊</button>
+                    </div>
+                    <video class="img-fluid" controls>
+                        <source src="/video/intro.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+
+            </div>
+
+            <!-- ========== 新標籤模板 ========== -->
+            <template id="new_tab_btn_template" class="d-none">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="" data-bs-toggle="tab" href="" role="tab" aria-controls="" aria-selected="false"></a>
+                </li>
+            </template>
+
+            <!-- ========== 新內容模板 ========== -->
+            <template id="new_tab_content_template" class="d-none">
+                <div class="tab-pane fade" id="" role="tabpanel" aria-labelledby="">
+                    <div class="text-end mt-3">
+                        <div class="btn-group" role="group" aria-label="Basic mixed styles example">
+                            <button type="button" class="btn btn-outline-primary share" onclick="">複製邀請連結</button>
+                            <button type="button" class="btn btn-outline-success copy" onclick="">複製ID</button>
+                            <button type="button" class="btn btn-outline-danger leave" onclick="">離開</button>
+                        </div>
+                    </div>
+                    <div class="messageArea border border-light rounded-3 my-3 p-3" style="overflow-y: scroll; height:calc(100vh - 260px);"></div>
+                    <div class="row">
+                        <div class="col"><textarea type="text" class="form-control inputMsg" placeholder="請輸入訊息" rows="1"></textarea></div>
+                        <div class="col-auto"><button class="btn btn-primary sendMsg" type="button" onclick="">送出</button></div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ========== 新提示文字模板 ========== -->
+            <template id="new_prompt_template" class="d-none">
+                <div class="text-center mb-3 col-12">
+                    <span class="promptContent py-2 px-4 badge rounded-pill bg-light text-secondary"></span>
+                </div>
+            </template>
+
+            <!-- ========== 新訊息（接收）模板 ========== -->
+            <template id="new_recv_msgbox_template" class="d-none">
+                <div class="msgbox mb-3 col-12 col-sm-9 col-md-6" id="" >
+                    <div class="small ps-2"><span class="authorRTCName fw-bold"></span>　<span class="authorRTCID"></span></div>
+                    <div class="msgContent leftArrow rounded-3 p-2 text-break"></div>
+                </div>
+            </template>
+
+            <!-- ========== 新訊息（發送）模板 ========== -->
+            <template id="new_send_msgbox_template" class="d-none">
+                <div class="msgbox mb-3 col offset-0 offset-sm-3 offset-md-6" id="" >
+                    <div class="small ps-2 text-end"><span class="authorRTCName fw-bold"></span>　<span class="authorRTCID"></span></div>
+                    <div class="msgContent rightArrow bg-primary text-white rounded-3 p-2 text-break"></div>
+                </div>
+            </template>
+
+            <!-- ========== 新預覽連結模板 ========== -->
+            <template id="new_link_preview_template" class="d-none">
+                <a href="" target="_blank" class="text-decoration-none">
+                    <div class="card mb-3" style="max-width: 540px;">
+                        <div class="row g-0">
+                            <div class="col-md-4 d-flex align-items-center bg-light">
+                                <img class="preview-img rounded-3" src="">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <div class="preview-title card-title text-dark fw-bold"></div>
+                                    <div class="preview-desc card-text text-dark"></div>
+                                    <div class="card-text text-muted"><small class="preview-domain"></small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </template>
+            
+        </div> 
+
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.3.1/peerjs.min.js"></script>
+        <script>
+            class Message {
+                constructor(from, authorName, authorID, message, type) {
+                    this.from = from;
+                    this.authorName = authorName;
+                    this.authorID = authorID;
+                    this.message = message;
+                    this.type = type;
+                }
+            }
+
+            // ======================================== 䁥稱輸入Listener ========================================
+            $("#myRTCName + input").on('change', () => { 
+                myRTCName = $(`#myRTCName + input`).val(); 
+                let msg = new Message(myRTCID, myRTCName, myRTCID, `${myRTCID}已改名為${myRTCName}`, "changeName");
+                for(let connItem of Object.values(connDict))
+                    connItem.send(msg);
+            });
+
+            // ======================================== HTML聊天室物件 ========================================
+            var COUNT = 0;
+            var URLregex=/https?:\/\/(([^\/:\.\s]+(\.[^\/:\.\s]+)*)|([0-9](\.[0-9]{3})))(:[0-9]+)?((\/[^?#\s]+)(\?[^#\s]+)?(\#.+)?)?/gi;
+            
+            // ---------- 建立新聊天室分頁 ----------
+            function createChatroomTab(id) {
+                //分頁標籤
+                var new_tab_content = $($("#new_tab_content_template").html().trim());
+                new_tab_content.attr("id", id);
+                new_tab_content.attr("aria-labelledby", `${id}-tab`);
+                new_tab_content.find("button.sendMsg").first().attr("onclick", `sendMsg('${id}')`);
+                new_tab_content.find("button.share").first().attr("onclick", `share('${id}')`);
+                new_tab_content.find("button.copy").first().attr("onclick", `copy('${id}')`);
+                new_tab_content.find("button.leave").first().attr("onclick", `leave('${id}')`);
+                $("#myTabContent").append(new_tab_content);
+                //分頁內容
+                var new_tab_btn = $($("#new_tab_btn_template").html().trim());
+                new_tab_btn.children("a").first().html(id);
+                new_tab_btn.children("a").first().attr("id", `${id}-tab`);
+                new_tab_btn.children("a").first().attr("href", `#${id}`);
+                new_tab_btn.children("a").first().attr("aria-controls", id);
+                $("#new-tab").parent("li").before(new_tab_btn);
+            }
+
+            // ---------- 插入新訊息（提示文字） ----------
+            function appendPromptMessage(msg){
+                let new_prompt = $($("#new_prompt_template").html().trim());
+                new_prompt.find("span.promptContent").html(`${msg.message}`);
+                $(`#${msg.from} div.messageArea`).append(new_prompt);
+                $(`#${msg.from} div.messageArea`)[0].scrollTop = $(`#${msg.from} div.messageArea`)[0].scrollHeight;
+            }
+
+            // ---------- 插入新訊息 ----------
+            function appendMessageBox(msg, receiverID=null) {
+                // 訊息區塊模板
+                let type = (receiverID==null)? "recv": "send";
+                let chatroomID = (receiverID==null)? msg.from: receiverID;
+                let msgboxCOUNT = ++COUNT;
+                let new_msgbox = $($(`#new_${type}_msgbox_template`).html().trim());
+                new_msgbox.attr("id", `msgbox${msgboxCOUNT}`);
+                new_msgbox.find("span.authorRTCName").html(msg.authorName);
+                new_msgbox.find("span.authorRTCID").html(msg.authorID);
+                new_msgbox.find("div.msgContent").html(msg.message.replace(URLregex, "<a href='$&'>$&</a>").replace(/\r?\n/g, '<br/>'));
+        
+                // 加入訊息區
+                $(`#${chatroomID} div.messageArea`).append(new_msgbox);
+                $(`#${chatroomID} div.messageArea`)[0].scrollTop = $(`#${chatroomID} div.messageArea`)[0].scrollHeight;
+                
+                // 處理預覽連結
+                let matches = msg.message.match(URLregex);
+                if(matches != null)
+                    for(var item of matches)
+                        fetchingPreview(msgboxCOUNT, item);
+            }
+
+            // ---------- 每3秒抓取線上使用者 ----------
+            setInterval(function() {
+                $.ajax({
+                    url: "/api/peerjs/peers",
+                    type: 'GET',
+                    success: function(res) {
+                        $("#neighborNumber").html(res.length)
+                        $("#neighbors").html(res.join(", "))
+                        for(let connID of Object.keys(connDict))    //清掉離線的通訊
+                            if(!res.includes(connID))
+                                closeconn(connID);
+                    }
+                });
+            }, 3000);
+
+            // ---------- 取得預覽圖片 ----------
+            function fetchingPreview(msgboxCOUNT, previewURL) {
+                $.ajax({
+                    url: "/get_preview",
+                    data: {url: previewURL},
+                    type: 'GET',
+                    success: function(res) {
+                        let img_url = (res["img"]==null)? previewURL: res["img"];
+                        let new_preview= $($("#new_link_preview_template").html().trim());
+                        new_preview.find("img").attr("src", img_url);
+                        new_preview.find("a").attr("href", previewURL);
+                        new_preview.find(".preview-title").html(res["title"]);
+                        new_preview.find(".preview-desc").html(res["description"]);
+                        new_preview.find(".preview-domain").html(res["domain"]);
+                        $(`#msgbox${msgboxCOUNT} div.msgContent`).append(new_preview);
+                    }
+                });            
+            }
+
+            // ======================================== 通訊物件 ========================================
+            var myRTCID = '<%= customID %>';
+            var myRTCName;
+            var peer;
+            var connDict = {};
+
+            // ---------- 初始化個人連線 ----------
+            peer = new Peer(myRTCID, { host: 'localhost', port: 3000, path: '/api', key: 'peerjs'});
+            peer.on('open', (id) => {                                           // 個人連上peer時
+                myRTCID = id;
+                $("#myRTCID").html(`rtc://${id}`);
+                $("#myRTCName + input").attr("placeholder", `${id}`);
+                $("#myRTCName + input").val(`${id}`).change();
+                if('<%= joinID %>'!=='') communicate();
+            });
+            peer.on('connection', (conObject) => configConnection(conObject));  // 自己作為接收方時
+            peer.on('error', (err) => alert(err));                              // 連線錯誤時
+            
+            // ---------- 建立新連線物件 ----------
+            function configConnection(conn) {
+                if(!(conn.peer in connDict)){
+                    conn.on('open', () => {                              // 收到連線要求時
+                        console.log(`${conn.peer} connected successfully`);
+                        connDict[conn.peer] = conn;
+                        let msg = new Message(myRTCID, myRTCName, myRTCID, `${myRTCName}已進入聊天室`, "prompt");
+                        conn.send(msg);
+                        if(!$(`#${conn.peer}`).length) createChatroomTab(conn.peer)
+                        else $(`#${conn.peer}-tab`).removeClass("text-danger");
+
+                        conn.on('data', (data) => received(data));       // 收到訊息時
+                        conn.on('close', () => closeconn(conn.peer));    // 收到斷線要求時
+                        conn.on('error', (err) => {                      // 錯誤發生時
+                            console.log(err);
+                            delete connDict[conn.peer];
+                        });
+                    });
+                } else {
+                    console.log("duplicate");
+                }
+            }
+
+            // ---------- 收到訊息 ----------
+            function received(msg) {
+                if(msg.type == "changeName" && msg.from == msg.authorID) $(`#${msg.from}-tab`).html(msg.authorName);
+                else if(msg.type == "prompt") appendPromptMessage(msg);
+                else if(msg.authorID!=myRTCID) appendMessageBox(msg);
+            }
+
+            // ---------- 收到斷線訊息 ----------
+            function closeconn(authorID) {
+                console.log(`${authorID} is exit`);
+                delete connDict[authorID];
+                let new_prompt = $($("#new_prompt_template").html().trim());
+                new_prompt.find("span.promptContent").html(`${authorID}已離開聊天室`);
+                $(`#${authorID} div.messageArea`).append(new_prompt);
+                $(`#${authorID}-tab`).addClass("text-danger");
+            }
+            
+            // ======================================== 通訊按鈕方法 ========================================
+            // ---------- 加入通訊 ----------
+            function communicate() {
+                var receiverID = $("#dialRTCID").val();
+                if(receiverID!=myRTCID) configConnection(peer.connect(receiverID));
+                else alert(`不能與自己通訊`);
+                $("#dialRTCID").val("");
+            }
+
+            // ---------- 送訊息 ----------
+            function sendMsg(receiverID) {
+                if(connDict[receiverID]!=null) {
+                    let inputMsg = $(`#${receiverID} textarea.inputMsg`).val();
+                    let msg = new Message(myRTCID, myRTCName, myRTCID, inputMsg, "text");
+                    connDict[receiverID].send(msg);
+                    appendMessageBox(msg, receiverID);
+                    $(`#${receiverID} textarea.inputMsg`).val("");
+                } else alert(`未建立與${receiverID}的連線`);
+            }
+
+            // ---------- 複製通訊邀請連結 ----------
+            function share(receiverID) {
+                navigator.clipboard.writeText("<%= protocol %>://<%= domain %>/client?joinID="+receiverID).then(() => alert(`聊天室ID：${receiverID}的邀請連結已複製`), ()=>{});
+                
+            }
+
+            // ---------- 複製通訊ID ----------
+            function copy(receiverID) {
+                navigator.clipboard.writeText(receiverID).then(() => alert(`聊天室ID：${receiverID}已複製`), ()=>{});
+            }
+
+            // ---------- 離開通訊 ----------
+            function leave(receiverID) {
+                if(connDict[receiverID]!=null) connDict[receiverID].close();
+                $(`#${receiverID}-tab`).parent("li").remove();
+                $(`#${receiverID}`).remove();
+            }
+
+            // ======================================== 建立群組通訊 ========================================
+            var chatroomPeerDict = {};
+            var connMemberDict = {};
+
+            // ---------- 建立聊天室 ----------
+            function newChatroom(){
+                // 初始化聊天室連線
+                $.ajax({
+                    url: "/get_room_nonce",
+                    type: 'GET',
+                    success: function(res) {
+                        let chatroomName = res;
+                        chatroomPeerDict[chatroomName] = new Peer(chatroomName, { host: 'localhost', port: 3000, path: '/api'});
+                        chatroomPeerDict[chatroomName].on('open',(id) => {                      // 連上peer時
+                            connMemberDict[chatroomName] = {};
+                            alert(`聊天室建立完畢，ID為${id}`);
+                            $("#dialRTCID").val(id);
+                            communicate();
+                        });
+                        chatroomPeerDict[chatroomName].on('connection', (conn) => {             // 自己作為接收方
+                            connMemberDict[chatroomName][conn.peer] = conn;
+                            connMemberDict[chatroomName][conn.peer].on('open', () => {});                                   // 收到連線要求時
+                            connMemberDict[chatroomName][conn.peer].on('data', (data) => {                                  // 收到訊息時
+                                data.from = chatroomName;
+                                boardcast(chatroomName, data);
+                            });
+                            connMemberDict[chatroomName][conn.peer].on('close', () => leaveRoom(chatroomName, conn.peer));  // 收到斷線要求時
+                            connMemberDict[chatroomName][conn.peer].on('error', (err) => {                                  // 錯誤發生時
+                                console.log(err);
+                                delete connMemberDict[chatroomName][conn.peer];
+                            });
+                        });
+                        chatroomPeerDict[chatroomName].on('error', (err) => alert(err));        // 連線錯誤時
+                    }
+                });
+                
+            }
+
+            // ---------- 收到訊息 ----------
+            function boardcast(chatroomName, msg) {
+                for(let [memberId, memberConn] of Object.entries(connMemberDict[chatroomName]))
+                    memberConn.send(msg);
+            }
+
+            // ---------- 收到斷線訊息 ----------
+            function leaveRoom(chatroomName, sender) {
+                delete connMemberDict[chatroomName][sender];
+                let msg = new Message(chatroomName, sender, sender, `${sender}已離開聊天室`, "prompt");
+                boardcast(chatroomName, msg);
+            }
+        </script>
+    </body>
+
+</html>
