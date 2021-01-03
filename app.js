@@ -26,7 +26,15 @@ const server = https.createServer(credentials, app).listen(port, hostname, funct
 //---------- PEER SERVER ----------//
 const customGenerationFunction = () => ('R-' + randomValueHex(8));
 const expressPeerServer = require('peer').ExpressPeerServer;
-const peerserver = expressPeerServer(server, {debug: true, allow_discovery: true, generateClientId: customGenerationFunction});
+const peerserver = expressPeerServer(server, {
+                                     debug: true, 
+                                     allow_discovery: true,
+                                     generateClientId: customGenerationFunction,
+                                     config: {'iceServers': [
+                                         { url: 'stun:stun.l.google.com:19302' },
+                                         { url: 'turn:homeo@turn.bistri.com:80', credential: 'homeo' }
+                                     ]}
+                                    });
 
 //---------- PEER CLIENT OBJECT ----------//
 var clientDict = {}
