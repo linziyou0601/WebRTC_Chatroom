@@ -263,13 +263,13 @@
                     data: {url: previewURL},
                     type: 'GET',
                     success: function(res) {
-                        let img_url = (res["img"]==null)? previewURL: res["img"];
+                        let img_url = (res["image"]==null)? previewURL: res["image"];
                         let new_preview= $($("#new_link_preview_template").html().trim());
                         new_preview.find("img").attr("src", img_url);
                         new_preview.find("a").attr("href", previewURL);
                         new_preview.find(".preview-title").html(res["title"]);
                         new_preview.find(".preview-desc").html(res["description"]);
-                        new_preview.find(".preview-domain").html(res["domain"]);
+                        new_preview.find(".preview-domain").html(res["link"]);
                         $(`#msgbox${msgboxCOUNT} div.msgContent`).append(new_preview);
                     }
                 });            

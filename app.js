@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 //---------- SERVER ----------//
-const linkPreviewGenerator = require("link-preview-generator");
+const linkPreview = require('link-preview-node');
 const https = require('https');
 const express = require('express');
 const app = express();
@@ -15,8 +15,8 @@ const server = app.listen(port, hostname, function (req, res) {
 });
 
 /*var credentials = {
-    key: fs.readFileSync('/etc/letsencrypt/live/dbmshw.linziyou.info/privkey.pem'),   //server-key.pem
-    cert: fs.readFileSync('/etc/letsencrypt/live/dbmshw.linziyou.info/cert.pem')      //server-cert.pem
+    key: fs.readFileSync('/var/www/WebRTC_Chatroom/ssl/privkey.pem'),   //server-key.pem
+    cert: fs.readFileSync('/var/www/WebRTC_Chatroom/ssl/cert.pem')      //server-cert.pem
 };
   
 const server = https.createServer(credentials, app).listen(port, hostname, function (req, res) {
@@ -62,15 +62,15 @@ app.get('/client', function(req, res){
 
 //---------- 取得URL的PREVIEW資料 ----------//
 app.get('/get_preview', async function(req, res){
-    try{
-        let url = req.query.url;
-        const previewData = await linkPreviewGenerator(url);
-        console.log(previewData);
-        res.send(previewData);
-    } catch(error){
-        console.log('錯誤訊息: ', error);
-        res.send({"title":"","description":"","domain":"","img":""});
-    }
+    let url = req.query.url;
+    linkPreview.linkPreview(url)
+    .then(resp => {
+        console.log(resp);
+        res.send(resp);
+    }).catch(catchErr => {
+        console.log('錯誤訊息: ', catchErr);
+        res.send({"title":"","description":"","link":"","img":""});
+    });
 });
 
 //---------- 取得ROOM的隨機字串 ----------//
