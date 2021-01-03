@@ -51,6 +51,7 @@
                 object-fit: cover;
                 height: 100%;
                 width: 100%;
+                max-height: 120px;
             }
         </style>
     </head>
@@ -151,9 +152,9 @@
                             </div>
                             <div class="col-md-8">
                                 <div class="card-body">
-                                    <div class="preview-title card-title text-dark fw-bold"></div>
-                                    <div class="preview-desc card-text text-dark"></div>
-                                    <div class="card-text text-muted"><small class="preview-domain"></small></div>
+                                    <div class="preview-title card-title text-dark fw-bold text-truncate"></div>
+                                    <div class="preview-desc card-text text-dark text-truncate"></div>
+                                    <div class="card-text text-muted text-truncate"><small class="preview-domain"></small></div>
                                 </div>
                             </div>
                         </div>
@@ -265,8 +266,8 @@
                     success: function(res) {
                         let img_url = (res["image"]==null)? previewURL: res["image"];
                         let new_preview= $($("#new_link_preview_template").html().trim());
+                        new_preview.attr("href", previewURL);
                         new_preview.find("img").attr("src", img_url);
-                        new_preview.find("a").attr("href", previewURL);
                         new_preview.find(".preview-title").html(res["title"]);
                         new_preview.find(".preview-desc").html(res["description"]);
                         new_preview.find(".preview-domain").html(res["link"]);
@@ -355,8 +356,7 @@
 
             // ---------- 複製通訊邀請連結 ----------
             function share(receiverID) {
-                navigator.clipboard.writeText("<%= protocol %>://<%= domain %>/client?joinID="+receiverID).then(() => alert(`聊天室ID：${receiverID}的邀請連結已複製`), ()=>{});
-                
+                navigator.clipboard.writeText("<%= protocol %>://<%= domain %>/client?joinID="+receiverID).then(() => alert(`聊天室ID：${receiverID}的邀請連結已複製`), ()=>{});   
             }
 
             // ---------- 複製通訊ID ----------

@@ -1,9 +1,9 @@
 //---------- FILE SYSTEM ----------//
 const path = require('path');
 const fs = require('fs');
+const getLinkPreview = require('link-preview-js').getLinkPreview;
 
 //---------- SERVER ----------//
-const linkPreview = require('link-preview-node');
 const https = require('https');
 const express = require('express');
 const app = express();
@@ -22,10 +22,6 @@ const server = app.listen(port, hostname, function (req, res) {
 const server = https.createServer(credentials, app).listen(port, hostname, function (req, res) {
     console.log(`listening at: ${hostname}:${port}`);
 });*/
-
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-app.use(express.static(__dirname+'/public'));
 
 //---------- PEER SERVER ----------//
 const customGenerationFunction = () => ('R-' + randomValueHex(8));
@@ -48,6 +44,13 @@ peerserver.on('disconnect', (client) => {
     console.log(`${client.id}與伺服器連接中斷`);
 });
 
+
+
+//---------- EJS ----------//
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+app.use(express.static(__dirname+'/public'));
+
 //---------- CLIENT 頁面 ----------//
 app.get('/client', function(req, res){
     res.render('index-client', {
@@ -63,13 +66,42 @@ app.get('/client', function(req, res){
 //---------- 取得URL的PREVIEW資料 ----------//
 app.get('/get_preview', async function(req, res){
     let url = req.query.url;
-    linkPreview.linkPreview(url)
-    .then(resp => {
-        console.log(resp);
-        res.send(resp);
-    }).catch(catchErr => {
+    getLinkPreview(url, {
+        headers: {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36",
+            "Accept-Language": "zh-TW",
+        }
+    })
+    .then(data => {
+        console.log(data)
+        let title = "";
+        let description = "";
+        let link = data.url;
+        let image = data.favicons[data.favicons.length-1] || null;
+        switch(true) {
+            case data.contentType.includes("text/html"):
+                title = data.title;
+                description = data.description;
+                image = data.images[0] || image;
+                break;
+            case data.contentType.includes("image"):
+                image = data.url;
+                break;
+            case data.contentType.includes("audio"):
+                image = image || "/image/audio.png";
+                break;
+            case data.contentType.includes("video"):
+                image = image || "/image/video.png";
+                break;
+            case data.contentType.includes("application"):
+                image = image || "/image/application.png";
+                break;
+        }
+        res.send({"title":title,"description":description,"link":link,"image":image});
+    })
+    .catch(catchErr => {
         console.log('錯誤訊息: ', catchErr);
-        res.send({"title":"","description":"","link":"","img":""});
+        res.send({"title":"","description":"","link":"","image":null});
     });
 });
 
