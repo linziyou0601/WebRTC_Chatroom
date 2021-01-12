@@ -1,4 +1,5 @@
 //---------- FILE SYSTEM ----------//
+const bodyParser = require('body-parser')
 const path = require('path');
 const fs = require('fs');
 const getLinkPreview = require('link-preview-js').getLinkPreview;
@@ -125,6 +126,62 @@ function randomValueHex(len) {
         .toString('hex') // convert to hexadecimal format
         .slice(0,len).toUpperCase();   // return required number of characters
 }
+
+
+
+//-------------------- OOSE期末考用 --------------------//
+var jsonParser = bodyParser.json()                                  // JSON Parser
+var urlencodedParser = bodyParser.urlencoded({ extended: false })   // Urlencoded Parser
+
+var PATTERN_TYPE = {
+    "Abstract Factory": "AEP",
+    "Adapter": "ACEP",
+    "Bridge": "AEP",
+    "Builder": "AEP",
+    "Chain of Responsibility": "EP",
+    "Controller": "EP",
+    "Observer": "EP",
+    "Command": "EP",
+    "Composite": "EP",
+    "Decorator": "EP",
+    "Visitor": "EP",
+    "Façade": "P",
+    "Mediator": "P",
+    "Factory Method": "AEP",
+    "Template Method": "AEP",
+    "Flyweight": "P",
+    "Singleton": "P",
+    "Virtual Proxy": "P",
+    "Smart Reference Proxy": "P",
+    "Interpreter": "EP",
+    "Iterator": "P",
+    "Protection Proxy": "CE",
+    "Prototype": "EP",
+    "State": "EP",
+    "Strategy": "EP"
+}
+
+//---------- 取得TYPE ----------//
+//---------- PATTERN 頁面 ----------//
+app.get('/oose', (req, res)=>{
+    res.render('oose');
+});
+
+app.get('/get_patterns', (req, res)=>{
+    let PATTERNS = Object.keys(PATTERN_TYPE);
+    PATTERNS.sort(() => Math.random() - 0.5);
+    res.send(PATTERNS);
+});
+
+app.post('/valid_patterns', urlencodedParser, (req, res)=>{
+    let ANSWERS = JSON.parse(req.body.answers);
+    let result = "";
+    for(let [key, value] of Object.entries(ANSWERS))
+        if(PATTERN_TYPE[key] != value)
+            result += `${key}\t=>\t${PATTERN_TYPE[key]}\t；\t你的答案\t=>\t${value}\n`;
+    result = result || "全對！";
+    res.json({"result": result});
+});
 
 
 
