@@ -9,6 +9,7 @@ Demo: https://webrtc-chatroom0.herokuapp.com/client
 - 一對一文字聊天
 - 群組文字聊天
 - 超連結預覽功能
+- 網址後面加上GET參數 `customID={your custom id}` 可以連線的rtc ID名稱
 
 ## 安裝
 
