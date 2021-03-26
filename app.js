@@ -63,7 +63,7 @@ app.use(express.static(__dirname+'/public'));
 //---------- CLIENT 頁面 ----------//
 app.get('/client', function(req, res){
     res.render('index-client', {
-        protocol: req.protocol,
+        protocol: (!req.headers.host.includes('heroku'))? req.protocol: "http",
         domain: req.headers.host,
         hostname: req.hostname,
         secure: (req.protocol=="https" || !req.headers.host.includes('heroku'))? true: false,
