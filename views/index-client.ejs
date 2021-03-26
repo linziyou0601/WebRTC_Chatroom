@@ -283,7 +283,7 @@
             var connDict = {};
 
             // ---------- 初始化個人連線 ----------
-            peer = new Peer(myRTCID, { host: '<%= hostname %>', port: 5000, path: '/api', key: 'peerjs', secure: ('<%= secure %>'=='true')});
+            peer = new Peer(myRTCID, { host: '<%= hostname %>', port: ('<%= needPort %>'=='true')? 5000: '', path: '/api', key: 'peerjs', secure: ('<%= secure %>'=='true')});
             peer.on('open', (id) => {                                           // 個人連上peer時
                 myRTCID = id;
                 $("#myRTCID").html(`rtc://${id}`);
@@ -383,7 +383,7 @@
                     type: 'GET',
                     success: function(res) {
                         let chatroomName = res;
-                        chatroomPeerDict[chatroomName] = new Peer(chatroomName, { host: '<%= hostname %>', port: 5000, path: '/api', secure: ('<%= secure %>'=='true')});
+                        chatroomPeerDict[chatroomName] = new Peer(chatroomName, { host: '<%= hostname %>', port: ('<%= needPort %>'=='true')? 5000: '', path: '/api', secure: ('<%= secure %>'=='true')});
                         chatroomPeerDict[chatroomName].on('open',(id) => {                      // 連上peer時
                             connMemberDict[chatroomName] = {};
                             alert(`聊天室建立完畢，ID為${id}`);

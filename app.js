@@ -68,7 +68,8 @@ app.get('/client', function(req, res){
         hostname: req.hostname,
         secure: (req.protocol=="https" || !req.headers.host.includes('heroku'))? true: false,
         joinID: req.query.joinID || "",
-        customID: req.query.customID || ""
+        customID: req.query.customID || "",
+        needPort: !req.headers.host.includes('heroku')
     });
 });
 
