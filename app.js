@@ -8,7 +8,7 @@ const getLinkPreview = require('link-preview-js').getLinkPreview;
 const https = require('https');
 const express = require('express');
 const app = express();
-const port = 3000
+const port = process.env.PORT || 5000;
 const hostname = '0.0.0.0'
 
 const server = app.listen(port, hostname, function (req, res) {
